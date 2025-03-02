@@ -1,0 +1,371 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==================== USER RELATED MODELS ====================
+
+model User {
+  id                String              @id @default(cuid())
+  name              String
+  username          String              @unique
+  hashedPassword    String
+  displayName       String?
+  profileImage      String?
+  bio               String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations - these don't store arrays in the database
+  // They represent the inverse side of relationships
+  // where the foreign key is in the other table
+  phones            UserPhone[]         // UserPhone table has userId foreign key
+  emails            UserEmail[]         // UserEmail table has userId foreign key
+  tourPlans         TourPlan[]          // TourPlan table has userId foreign key
+  bookings          Booking[]           // Booking table has userId foreign key
+  testimonials      Testimonial[]       // Testimonial table has userId foreign key
+  interests         UserInterest[]      // UserInterest table has userId foreign key
+  favoriteLocations UserFavoritePlace[] // UserFavoritePlace table has userId foreign key
+  notifications     Notification[]      // Notification table has userId foreign key
+}
+
+model UserPhone {
+  id          String    @id @default(cuid())
+  phoneNumber String
+  isPrimary   Boolean   @default(false)
+  isVerified  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - proper foreign key relationship
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    // This is the actual foreign key column in the database
+}
+
+model UserEmail {
+  id           String    @id @default(cuid())
+  emailAddress String
+  isPrimary    Boolean   @default(false)
+  isVerified   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  
+  // Relations - proper foreign key relationship
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String    // This is the actual foreign key column in the database
+}
+
+model UserInterest {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  
+  // Relations - proper foreign key relationships
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    // This is the actual foreign key column in the database
+  interest  Interest  @relation(fields: [interestId], references: [id])
+  interestId String   // This is the actual foreign key column in the database
+  
+  @@unique([userId, interestId])
+}
+
+model UserFavoritePlace {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  
+  // Relations - proper foreign key relationships
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    // This is the actual foreign key column in the database
+  place     Place     @relation(fields: [placeId], references: [id])
+  placeId   String    // This is the actual foreign key column in the database
+  
+  @@unique([userId, placeId])
+}
+
+// ==================== LOCATION RELATED MODELS ====================
+
+model Country {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  code        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - this doesn't store an array in the database
+  cities      City[]    // City table has countryId foreign key
+}
+
+model City {
+  id                     String    @id @default(cuid())
+  name                   String
+  description            String?
+  generalSuggestion      String?
+  imageUrl               String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
+  
+  // Relations - proper foreign key relationship
+  country                Country   @relation(fields: [countryId], references: [id])
+  countryId              String    // This is the actual foreign key column in the database
+  
+  // Relations - these don't store arrays in the database
+  places                 Place[]   // Place table has cityId foreign key
+  tourPlans              TourPlan[] // TourPlan table has cityId foreign key
+  
+  @@unique([name, countryId])
+}
+
+model Place {
+  id                String              @id @default(cuid())
+  name              String
+  description       String?
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  imageUrl          String?
+  websiteUrl        String?
+  contactNumber     String?
+  openingHours      String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations - proper foreign key relationships
+  city              City                @relation(fields: [cityId], references: [id])
+  cityId            String              // This is the actual foreign key column in the database
+  placeType         PlaceType           @relation(fields: [placeTypeId], references: [id])
+  placeTypeId       String              // This is the actual foreign key column in the database
+  budgetCategory    BudgetCategory      @relation(fields: [budgetCategoryId], references: [id])
+  budgetCategoryId  String              // This is the actual foreign key column in the database
+  
+  // Relations - these don't store arrays in the database
+  activities        Activity[]          // Activity table has placeId foreign key
+  userFavorites     UserFavoritePlace[] // UserFavoritePlace table has placeId foreign key
+  placeInterests    PlaceInterest[]     // PlaceInterest table has placeId foreign key
+  
+  @@unique([name, cityId])
+}
+
+model PlaceType {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - this doesn't store an array in the database
+  places      Place[]   // Place table has placeTypeId foreign key
+}
+
+model PlaceInterest {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - proper foreign key relationships
+  place       Place     @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId     String    // This is the actual foreign key column in the database
+  interest    Interest  @relation(fields: [interestId], references: [id])
+  interestId  String    // This is the actual foreign key column in the database
+  
+  @@unique([placeId, interestId])
+}
+
+// ==================== TOUR PLANNING MODELS ====================
+
+model TourPlan {
+  id              String            @id @default(cuid())
+  title           String
+  description     String?
+  startDate       DateTime?
+  endDate         DateTime?
+  totalPeople     Int
+  isPublic        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+  
+  // Relations - proper foreign key relationships
+  user            User              @relation(fields: [userId], references: [id])
+  userId          String            // This is the actual foreign key column in the database
+  city            City              @relation(fields: [cityId], references: [id])
+  cityId          String            // This is the actual foreign key column in the database
+  budgetCategory  BudgetCategory    @relation(fields: [budgetCategoryId], references: [id])
+  budgetCategoryId String           // This is the actual foreign key column in the database
+  
+  // Relations - these don't store arrays in the database
+  itineraries     Itinerary[]       // Itinerary table has tourPlanId foreign key
+  bookings        Booking[]         // Booking table has tourPlanId foreign key
+  tourPlanInterests TourPlanInterest[] // TourPlanInterest table has tourPlanId foreign key
+}
+
+model TourPlanInterest {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - proper foreign key relationships
+  tourPlan    TourPlan  @relation(fields: [tourPlanId], references: [id], onDelete: Cascade)
+  tourPlanId  String    // This is the actual foreign key column in the database
+  interest    Interest  @relation(fields: [interestId], references: [id])
+  interestId  String    // This is the actual foreign key column in the database
+  
+  @@unique([tourPlanId, interestId])
+}
+
+model Itinerary {
+  id          String      @id @default(cuid())
+  dayNumber   Int
+  date        DateTime?
+  title       String?
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - proper foreign key relationship
+  tourPlan    TourPlan    @relation(fields: [tourPlanId], references: [id], onDelete: Cascade)
+  tourPlanId  String      // This is the actual foreign key column in the database
+  
+  // Relations - this doesn't store an array in the database
+  activities  Activity[]  // Activity table has itineraryId foreign key
+  
+  @@unique([tourPlanId, dayNumber])
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - proper foreign key relationships
+  itinerary   Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  itineraryId String    // This is the actual foreign key column in the database
+  place       Place     @relation(fields: [placeId], references: [id])
+  placeId     String    // This is the actual foreign key column in the database
+}
+
+// ==================== BOOKING AND FEEDBACK MODELS ====================
+
+model Booking {
+  id            String        @id @default(cuid())
+  bookingDate   DateTime      @default(now())
+  status        BookingStatus @default(PENDING)
+  totalAmount   Float?
+  paymentStatus PaymentStatus @default(UNPAID)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+  
+  // Relations - proper foreign key relationships
+  user          User          @relation(fields: [userId], references: [id])
+  userId        String        // This is the actual foreign key column in the database
+  tourPlan      TourPlan      @relation(fields: [tourPlanId], references: [id])
+  tourPlanId    String        // This is the actual foreign key column in the database
+  
+  // Relations - this is a one-to-one relationship
+  testimonial   Testimonial?  // Testimonial table has bookingId foreign key
+}
+
+model Testimonial {
+  id          String    @id @default(cuid())
+  rating      Int       @default(5) // 1-5 rating
+  content     String
+  isPublic    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - proper foreign key relationships
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    // This is the actual foreign key column in the database
+  booking     Booking   @relation(fields: [bookingId], references: [id])
+  bookingId   String    @unique // This is the actual foreign key column in the database
+}
+
+// ==================== CATEGORIZATION MODELS ====================
+
+model Interest {
+  id               String             @id @default(cuid())
+  name             String             @unique
+  description      String?
+  iconUrl          String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  
+  // Relations - these don't store arrays in the database
+  userInterests    UserInterest[]     // UserInterest table has interestId foreign key
+  placeInterests   PlaceInterest[]    // PlaceInterest table has interestId foreign key
+  tourPlanInterests TourPlanInterest[] // TourPlanInterest table has interestId foreign key
+}
+
+model BudgetCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique // Cheap, Mid, Luxury
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - these don't store arrays in the database
+  places      Place[]    // Place table has budgetCategoryId foreign key
+  tourPlans   TourPlan[] // TourPlan table has budgetCategoryId foreign key
+}
+
+// ==================== NOTIFICATION MODEL ====================
+
+model Notification {
+  id          String    @id @default(cuid())
+  type        String
+  title       String
+  message     String
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  
+  // Relations - proper foreign key relationship
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    // This is the actual foreign key column in the database
+}
+
+// ==================== ENUMS ====================
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
