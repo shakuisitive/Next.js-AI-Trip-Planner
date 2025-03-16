@@ -1,0 +1,2 @@
+1 - LLM returned ```json with the response.
+Learning: https://www.linkedin.com/posts/shakuisitive_llm-llmwrappers-nextjs-activity-7307161058090082304-m3dz?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEpSfXwBxyF8uVMl_bgAbuezWOs_dZdhJZ4
